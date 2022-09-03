@@ -7,6 +7,7 @@
   <groupId>com.suydam</groupId>
   <artifactId>tts</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
 
   <name>tts</name>
   <!-- FIXME change it to the project's website -->
@@ -47,10 +48,19 @@
       <artifactId>commons-cli</artifactId>
       <version>1.5.0</version>
 	</dependency>
+	
+	<!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-pubsub 
+<dependency>
+    <groupId>com.google.cloud</groupId>
+    <artifactId>google-cloud-pubsub</artifactId>
+    <version>1.120.13</version>
+</dependency>
+-->
+
   </dependencies>
 
   <build>
-    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+<!--    <pluginManagement> lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
         <plugin>
@@ -106,7 +116,80 @@
             <mainClass>com.suydam.tts.GoogleTTS</mainClass>
           </configuration>
         </plugin>
+        <!--
+        <plugin>
+         	<groupId>org.apache.maven.plugins</groupId>
+    		<artifactId>maven-assembly-plugin</artifactId>
+    		<configuration>
+	            		<archive>
+	                		<manifest>
+			                    <mainClass>
+			                        com.suydam.tts.GoogleTTS
+			                    </mainClass>
+	                		</manifest>
+	            		</archive>
+		                <descriptorRefs>
+		                    <descriptorRef>jar-with-dependencies</descriptorRef>
+		                </descriptorRefs>
+        			</configuration>
+    		<executions>
+        		<execution>
+            		<phase>package</phase>
+        			<goals>
+            			<goal>single</goal>
+        			</goals>
+    			</execution>
+    		</executions>
+		</plugin>
+		-->
+		<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-shade-plugin</artifactId>
+    <executions>
+        <execution>
+        	<phase>package</phase>
+            <goals>
+                <goal>shade</goal>
+            </goals>
+            <configuration>
+                <shadedArtifactAttached>true</shadedArtifactAttached>
+                <transformers>
+                    <transformer implementation=
+                      "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                        <mainClass>com.suydam.tts.GoogleTTS</mainClass>
+                </transformer>
+                
+                <!--
+                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+				  <resource>META-INF/services</resource>
+				  <file>io.grpc.LoadBalancerProvider</file>
+				</transformer>
+				<transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+				  <resource>META-INF/services</resource>
+				  <file>io.grpc.NameResolverProvider</file>
+				</transformer>
+                -->
+                
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              
+                </transformers>
+                
+                <filters>
+                    <filter>
+                        <artifact>*:*</artifact>
+                        <excludes>
+                            <exclude>META-INF/*.SF</exclude>
+                            <exclude>META-INF/*.DSA</exclude>
+                            <exclude>META-INF/*.RSA</exclude>
+                        </excludes>
+                    </filter>
+                </filters>
+            
+        </configuration>
+        </execution>
+    </executions>
+</plugin>
       </plugins>
-    </pluginManagement>
+<!--    </pluginManagement> -->
   </build>
 </project>
