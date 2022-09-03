@@ -1,17 +1,7 @@
 package com.suydam.tts;
 
 import org.apache.commons.cli.*;
-
 import javax.sound.sampled.*;
-
-/* requires google-cloud-pubsub dependency in pom.xml
- * https://cloud.google.com/java/docs/reference/google-cloud-pubsub/latest/com.google.pubsub.v1.ProjectSubscriptionName
- * https://cloud.google.com/java/docs/reference/google-cloud-pubsub/latest/com.google.cloud.pubsub.v1.SubscriptionAdminClient
- * Would also need to create a Topic on project and a subscription for that Topic to run the code below
- * */
-//import com.google.pubsub.v1.*;
-//import com.google.cloud.pubsub.v1.*;
-
 
 //Imports the Google Cloud client library
 import com.google.cloud.texttospeech.v1.AudioConfig;
@@ -22,7 +12,6 @@ import com.google.cloud.texttospeech.v1.SynthesizeSpeechResponse;
 import com.google.cloud.texttospeech.v1.TextToSpeechClient;
 import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
-//import com.google.cloud.internal.PickFirstLoadBalancer;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -60,12 +49,10 @@ public class GoogleTTS implements LineListener
             
             if (cmd.hasOption("v")) {
             	verbiage = cmd.getOptionValue("verbiage");
-            	System.out.println("Verbalizing: " + verbiage);
             }
             
             if (cmd.hasOption("l")) {
             	language = cmd.getOptionValue("language");
-            	System.out.println("Language Code: " + language);
             }
             
         } catch (ParseException e) {
@@ -77,16 +64,6 @@ public class GoogleTTS implements LineListener
 
         System.out.println("Verbalizing: " + verbiage);
         System.out.println("Language Code: " + language);
-        
-        /*
-        ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of("TTS Quickstart", subscriptionId);
-        try (SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create()) {
-            subscriptionAdminClient.getSubscription(subscriptionName); // Exception is thrown in this line
-        } catch (Exception t) {
-        	t.printStackTrace();
-        	System.exit(1);
-        }
-        */
         
         try {
         	GoogleTTS client = new GoogleTTS();
@@ -102,7 +79,6 @@ public class GoogleTTS implements LineListener
     
     
     public GoogleTTS() throws IOException {
-    	//LoadBalancerRegistry.getDefaultRegistry().register(new PickFirstLoadBalancerProvider());
     	textToSpeechClient = TextToSpeechClient.create();
     }
     
