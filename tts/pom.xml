@@ -19,6 +19,7 @@
     <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
 
+<!-- Google Cloud client libraries -->
 <dependencyManagement>
   <dependencies>
     <dependency>
@@ -38,6 +39,7 @@
       <version>4.11</version>
       <scope>test</scope>
     </dependency>
+    <!-- Google Cloud TTS -->
     <dependency>
 	  <groupId>com.google.cloud</groupId>
 	  <artifactId>google-cloud-texttospeech</artifactId>
@@ -48,15 +50,6 @@
       <artifactId>commons-cli</artifactId>
       <version>1.5.0</version>
 	</dependency>
-	
-	<!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-pubsub 
-<dependency>
-    <groupId>com.google.cloud</groupId>
-    <artifactId>google-cloud-pubsub</artifactId>
-    <version>1.120.13</version>
-</dependency>
--->
-
   </dependencies>
 
   <build>
@@ -83,7 +76,8 @@
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
-          <configuration>  
+          <configuration>
+          		<!-- define the main() class -->
                 <archive>  
                     <manifest>  
                         <mainClass>com.suydam.tts.GoogleTTS</mainClass>  
@@ -108,6 +102,7 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
         </plugin>
+        <!-- plugin that enables exec:java goal -->
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
@@ -116,6 +111,9 @@
             <mainClass>com.suydam.tts.GoogleTTS</mainClass>
           </configuration>
         </plugin>
+        
+        <!-- first attempt at using maven plugin to create an uber jar -->
+        
         <!--
         <plugin>
          	<groupId>org.apache.maven.plugins</groupId>
@@ -142,6 +140,10 @@
     		</executions>
 		</plugin>
 		-->
+		
+		
+		<!-- maven shade plugin can create an uber jar that accomodates google client library oddness -->
+		
 		<plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-shade-plugin</artifactId>
@@ -159,21 +161,13 @@
                         <mainClass>com.suydam.tts.GoogleTTS</mainClass>
                 </transformer>
                 
-                <!--
-                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-				  <resource>META-INF/services</resource>
-				  <file>io.grpc.LoadBalancerProvider</file>
-				</transformer>
-				<transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-				  <resource>META-INF/services</resource>
-				  <file>io.grpc.NameResolverProvider</file>
-				</transformer>
-                -->
+                <!-- This transformer assembles all service names across google client jars for an uber jar -->
                 
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               
                 </transformers>
                 
+                <!-- These filters exclude digitally signed jars which seem to screw with java security model in an uber jar -->
                 <filters>
                     <filter>
                         <artifact>*:*</artifact>
