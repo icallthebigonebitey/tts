@@ -16,15 +16,39 @@ import com.google.protobuf.ByteString;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Hashtable;
 import java.io.InputStream;
 
 /**
- * Hello world!
+ * An implementation of a Google Text to Speech client that can fetch
+ * and play audio renditions of text 
  *
  */
 public class GoogleTTS implements LineListener
 {
+	private static int RESOURCE_SLEEP_INTERVAL = 100; // milliseconds
+	
+	/*
+	 * Google Cloud TTS
+	 * https://cloud.google.com/text-to-speech/   (Web form to test out TTS on any words)
+	 * https://cloud.google.com/text-to-speech/docs/libraries
+	 * https://cloud.google.com/text-to-speech/docs/libraries#installing_the_client_library
+	 * https://cloud.google.com/apis/docs/cloud-client-libraries
+	 * https://cloud.google.com/apis/docs/client-libraries-explained
+	 * https://cloud.google.com/java/docs/setup
+	 * https://cloud.google.com/docs/authentication?_ga=2.163244284.-130985594.1660933210#api-keys
+	 * https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1
+	 * https://developers.google.com/protocol-buffers/docs/reference/java/index-all.html#I:P
+	 * Quotas: https://console.cloud.google.com/iam-admin/quotas?project=watchful-idea-360015&supportedpurview=project
+	 * 
+	 * Audio playback
+	 * https://www.baeldung.com/java-play-sound
+	 * https://www.codejava.net/coding/how-to-play-back-audio-in-java-with-examples
+	 * https://www.javatpoint.com/javafx-with-eclipse
+	 * 
+	 */
 	private TextToSpeechClient textToSpeechClient;
+	private Hashtable<String, ByteString> audioContentsCache = new Hashtable<String, ByteString>();
 	private AudioConfig audioConfig;
 	boolean playCompleted;
 	
@@ -69,6 +93,10 @@ public class GoogleTTS implements LineListener
         	GoogleTTS client = new GoogleTTS();
         	//String resource = client.renderAsMP3(verbiage, language);
         	client.playAsWAV(verbiage, language);
+        	//client.playAsWAV("ในวันฝนพรำเธอคิดถึงกันบ้างไหมในตอนที่ไม่ได้เจอแล้วเธอนั้นเป็นอย่างไร", language);
+        	
+        	// test that caching is working
+        	client.playAsWAV(verbiage, language);
         } catch (Exception e) {
         	e.printStackTrace();
         	System.exit(1);
@@ -102,36 +130,63 @@ public class GoogleTTS implements LineListener
     }
     
     public String renderAsMP3(String verbiage, String language) {
-    	// Select the type of audio file you want returned
-    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
-    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
     	
-		ByteString audioContents = synthesize(verbiage, language);
-		
+    	String key = createKey(verbiage, language);
+    	ByteString audioContents = (ByteString) audioContentsCache.get(key);
+    	
+    	if (audioContents == null) {
+	    	// Select the type of audio file you want returned
+	    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
+	    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
+	    	
+			audioContents = synthesize(verbiage, language);
+			if (audioContents == null) {
+				System.out.println("Could not synthesize text to speech");
+				return null;
+			}
+			
+			audioContentsCache.put(key, audioContents);
+    	}
+			
     	// Write the response to the output file.
     	String fileName = "output.mp3";
     	try (OutputStream out = new FileOutputStream(fileName)) {
     		out.write(audioContents.toByteArray());
     		out.close();
-    	    System.out.println("Audio content written to file \"output.mp3\"");
+    	    System.out.println("Audio content written to file " + fileName);
     	} catch (Exception e) {
+    		System.out.println("Could not write audio content to file");
     		e.printStackTrace();
-    		System.exit(1);
+    		return null;
     	}
     	
     	return fileName;
     }
     
-    public void playAsWAV(String verbiage, String language) {
-    	// Select the type of audio file you want returned
-    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
-    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.LINEAR16).build();
+    public boolean playAsWAV(String verbiage, String language) {
     	
-    	ByteString audioContents = synthesize(verbiage, language);
+    	String key = createKey(verbiage, language);
+    	ByteString audioContents = (ByteString) audioContentsCache.get(key);
+    	
+    	if (audioContents == null) {
+	    	// Select the type of audio file you want returned
+	    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
+	    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.LINEAR16).build();
+	    	
+	    	audioContents = synthesize(verbiage, language);
+	    	if (audioContents == null) {
+				System.out.println("Could not synthesize text to speech");
+				return false;
+			}
+			
+			audioContentsCache.put(key, audioContents);
+    	} else {
+    		//System.out.println("pulled from cache");
+    	}
+    	 
     	InputStream inputStream = audioContents.newInput();
-    	
     	try {
-	    	AudioInputStream audioStream = AudioSystem.getAudioInputStream(inputStream);
+    		AudioInputStream audioStream = AudioSystem.getAudioInputStream(inputStream);
 	    	
 	    	AudioFormat audioFormat = audioStream.getFormat();
 	    	DataLine.Info info = new DataLine.Info(Clip.class, audioFormat);
@@ -142,9 +197,9 @@ public class GoogleTTS implements LineListener
 	    	audioClip.start();
 	    	
 	    	while (!playCompleted) {
-                // wait for the playback completes
+                // wait for the playback to complete
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(RESOURCE_SLEEP_INTERVAL);
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
                 }
@@ -152,11 +207,19 @@ public class GoogleTTS implements LineListener
              
             audioClip.close();
             audioStream.close();
+            
+            // set up client to play something new
+            playCompleted = false;
     	} catch (Exception e) {
+    		System.out.println("failed to playback TTS audio");
     		e.printStackTrace();
-    		System.exit(1);
+    		return false;
     	}
-    	
+    	return true;
+    }
+    
+    private String createKey(String verbiage, String language) {
+    	return verbiage + language;
     }
     
     public void update(LineEvent event) {
@@ -164,7 +227,7 @@ public class GoogleTTS implements LineListener
          
         if (type == LineEvent.Type.STOP) {
             playCompleted = true;
-            System.out.println("Playback completed.");
+            //System.out.println("Playback completed.");
         }
     }
 }
