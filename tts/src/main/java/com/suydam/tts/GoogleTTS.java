@@ -13,11 +13,16 @@ import com.google.cloud.texttospeech.v1.TextToSpeechClient;
 import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
 
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 /**
  * An implementation of a Google Text to Speech client that can fetch
@@ -26,7 +31,8 @@ import java.io.InputStream;
  */
 public class GoogleTTS implements LineListener
 {
-	private static int RESOURCE_SLEEP_INTERVAL = 100; // milliseconds
+	private static int RESOURCE_POLLING_INTERVAL = 100; // milliseconds for polling interval during WAV playback
+	private static int RESOURCE_MP3_PAUSE_INTERVAL = 1500; // milliseconds for pauses during MP3 playback
 	
 	/*
 	 * Google Cloud TTS
@@ -49,6 +55,7 @@ public class GoogleTTS implements LineListener
 	 */
 	private TextToSpeechClient textToSpeechClient;
 	private Hashtable<String, ByteString> audioContentsCache = new Hashtable<String, ByteString>();
+	private ArrayList<Phrase> audioPhrases = new ArrayList<Phrase>();
 	private AudioConfig audioConfig;
 	boolean playCompleted;
 	
@@ -91,12 +98,18 @@ public class GoogleTTS implements LineListener
         
         try {
         	GoogleTTS client = new GoogleTTS();
-        	//String resource = client.renderAsMP3(verbiage, language);
-        	client.playAsWAV(verbiage, language);
+        	
+        	//client.renderAsMP3(verbiage, language);
+        	
+        	client.collectPhraseForPlayback("หลอด", "th-TH", "straw", "en-AU");
+        	client.collectPhraseForPlayback("ผนัง", "th-TH", "wall", "en-AU");
+        	client.generateMP3fromPhrases("tone_rule_words.mp3", false);
+        	
+        	//client.playAsWAV(verbiage, language);
         	//client.playAsWAV("ในวันฝนพรำเธอคิดถึงกันบ้างไหมในตอนที่ไม่ได้เจอแล้วเธอนั้นเป็นอย่างไร", language);
         	
         	// test that caching is working
-        	client.playAsWAV(verbiage, language);
+        	//client.playAsWAV(verbiage, language);
         } catch (Exception e) {
         	e.printStackTrace();
         	System.exit(1);
@@ -109,7 +122,6 @@ public class GoogleTTS implements LineListener
     public GoogleTTS() throws IOException {
     	textToSpeechClient = TextToSpeechClient.create();
     }
-    
     
     private ByteString synthesize(String verbiage, String language) {
  
@@ -127,6 +139,73 @@ public class GoogleTTS implements LineListener
     	
     	// Get the audio contents from the response
     	return response.getAudioContent();
+    }
+
+    private ByteString synthesizeSilence(int timeInMillis) {
+    	String ssml = "<speak><break time=\"" + timeInMillis + "ms\"/></speak>"; 
+    	
+    	// Set the text input to be synthesized
+    	SynthesisInput input = SynthesisInput.newBuilder().setSsml(ssml).build();
+    	
+    	// Build the voice request, specify the language code and the ssml voice gender
+    	// ("neutral")
+    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().setLanguageCode("en-AU").
+	           setSsmlGender(SsmlVoiceGender.NEUTRAL).build();
+    	
+    	// Perform the text-to-speech request on the text input with the selected voice parameters and
+	    // audio file type
+    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice, audioConfig);
+    	
+    	// Get the audio contents from the response
+    	return response.getAudioContent();
+    }
+
+    
+    public void collectPhraseForPlayback(String verbiage1, String language1, String verbiage2, String language2) {
+    	audioPhrases.add(new Phrase(verbiage1, language1, verbiage2, language2));
+    }
+    
+    public boolean generateMP3fromPhrases(String fileName, boolean reverse) {
+    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
+    	
+    	ByteString silenceContents = synthesizeSilence(RESOURCE_MP3_PAUSE_INTERVAL);
+    	ByteString audioContents;
+    	
+    	// Write the response to the output file.
+    	try (OutputStream out = new FileOutputStream(fileName)) {
+    		// Fetch all collected phrases
+            for (Phrase phrase:audioPhrases) {
+            	
+            	audioContents = synthesize(reverse ? phrase.verbiage2() : phrase.verbiage1(),
+            			reverse ? phrase.language2() : phrase.language1());
+    			if (audioContents == null) {
+    				System.out.println("Could not synthesize text to speech");
+    				return false;
+    			}
+    			out.write(audioContents.toByteArray());
+    			out.write(silenceContents.toByteArray());
+    			
+    			audioContents = synthesize(reverse ? phrase.verbiage1() : phrase.verbiage2(),
+    					reverse ? phrase.language1() : phrase.language2());
+    			
+    			if (audioContents == null) {
+    				System.out.println("Could not synthesize text to speech");
+    				return false;
+    			}
+    			out.write(audioContents.toByteArray());
+    			out.write(silenceContents.toByteArray());
+            }
+            
+    		
+    		out.close();
+    	    System.out.println("Audio content written to file " + fileName);
+    	} catch (Exception e) {
+    		System.out.println("Could not write audio content to file");
+    		e.printStackTrace();
+    		return false;
+    	}
+    	
+		return true;
     }
     
     public String renderAsMP3(String verbiage, String language) {
@@ -199,7 +278,7 @@ public class GoogleTTS implements LineListener
 	    	while (!playCompleted) {
                 // wait for the playback to complete
                 try {
-                    Thread.sleep(RESOURCE_SLEEP_INTERVAL);
+                    Thread.sleep(RESOURCE_POLLING_INTERVAL );
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
                 }
@@ -229,6 +308,36 @@ public class GoogleTTS implements LineListener
             playCompleted = true;
             //System.out.println("Playback completed.");
         }
+    }
+    
+    private class Phrase {
+    	private String verbiage1;
+    	private String language1;
+    	private String verbiage2;
+    	private String language2;
+    	
+    	public Phrase(String verbiage1, String language1, String verbiage2, String language2) {
+    		this.verbiage1 = verbiage1;
+    		this.language1 = language1;
+    		this.verbiage2 = verbiage2;
+    		this.language2 = language2;
+    	}
+    	
+    	public String verbiage1() {
+    		return verbiage1;
+    	}
+    	
+    	public String language1() {
+    		return language1;
+    	}
+    	
+    	public String verbiage2() {
+    		return verbiage2;
+    	}
+    	
+    	public String language2() {
+    		return language2;
+    	}
     }
 }
 
