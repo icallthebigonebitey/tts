@@ -13,15 +13,11 @@ import com.google.cloud.texttospeech.v1.TextToSpeechClient;
 import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
 
-import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 /**
@@ -56,6 +52,7 @@ public class GoogleTTS implements LineListener
 	private TextToSpeechClient textToSpeechClient;
 	private Hashtable<String, ByteString> audioContentsCache = new Hashtable<String, ByteString>();
 	private ArrayList<Phrase> audioPhrases = new ArrayList<Phrase>();
+	private GoogleTextToSpeechTransform transformer = new GoogleTextToSpeechTransform();
 	private AudioConfig audioConfig;
 	boolean playCompleted;
 	
@@ -125,8 +122,10 @@ public class GoogleTTS implements LineListener
     
     private ByteString synthesize(String verbiage, String language) {
  
+    	verbiage = transformer.transform(verbiage);
+    	
     	// Set the text input to be synthesized
-    	SynthesisInput input = SynthesisInput.newBuilder().setText(verbiage).build();
+    	SynthesisInput input = SynthesisInput.newBuilder().setSsml(verbiage).build();
     	
     	// Build the voice request, specify the language code and the ssml voice gender
     	// ("neutral")
@@ -178,7 +177,8 @@ public class GoogleTTS implements LineListener
             	
             	audioContents = synthesize(reverse ? phrase.verbiage2() : phrase.verbiage1(),
             			reverse ? phrase.language2() : phrase.language1());
-    			if (audioContents == null) {
+    			
+            	if (audioContents == null) {
     				System.out.println("Could not synthesize text to speech");
     				return false;
     			}
