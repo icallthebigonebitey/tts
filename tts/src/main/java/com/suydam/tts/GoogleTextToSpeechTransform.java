@@ -9,7 +9,7 @@ public class GoogleTextToSpeechTransform implements TextToSpeechTransform {
 	// character for pause insertion
 	private static final String RESOURCE_CHAR_PAUSE = "/";
 	// xml code for GoogleTTS to inject a delay (where / must be replaced by a numeric value)
-	private static final String RESOURCE_PAUSE_CODE = "<break time=\"" + RESOURCE_CHAR_PAUSE + "ms\"/>";
+	private static final String RESOURCE_PAUSE_CODE = ",<break time=\"" + RESOURCE_CHAR_PAUSE + "ms\"/>";
 	
 	// transform rules
 	private ArrayList<TransformRule> rules = new ArrayList<>();
@@ -26,21 +26,12 @@ public class GoogleTextToSpeechTransform implements TextToSpeechTransform {
 	 * @param delayMS number of milliseconds to inject for pauses
 	 */
 	public GoogleTextToSpeechTransform(int delayMS) {
+		if (delayMS == 0) {
+			delayMS = PAUSE_LENGTH_DEFAULT;
+		}
+		
 		// insert pauses anywhere we see a forward slash in the english meaning
 		registerRule(new TransformRule(RESOURCE_CHAR_PAUSE, false, assignPauseDelay(delayMS)));
-		
-		// workaround mispronunciations from Google TTS
-		
-		// standalone consonants
-		registerRule(new TransformRule("บ", true, "บ ใบไม"));
-		registerRule(new TransformRule("น", true, "นอ หนู"));
-		registerRule(new TransformRule("ถ", true, "ท่อ ถุง"));
-		registerRule(new TransformRule("ผ", true, "พ่อ ผึ้ง"));
-		registerRule(new TransformRule("ธ", true, "ท่อ ธง"));
-		registerRule(new TransformRule("ฅ", true, "ขอ คน"));
-		registerRule(new TransformRule("ฌ", true, "ชอ เฌอ"));
-		
-		// standalone vowels
 		
 		// rule for trimming enclosing brackets < >
 		// rule for TTS speed
@@ -141,9 +132,5 @@ public class GoogleTextToSpeechTransform implements TextToSpeechTransform {
 		System.out.println(g.transform("to stay"));
 		System.out.println(g.transform("to stay / to be at"));
 		System.out.println(g.transform("to stay / to be at / like spanish estar"));
-		System.out.println(g.transform("บ"));
-		System.out.println(g.transform("ชอบ"));
-		System.out.println(g.transform("น"));
-		System.out.println(g.transform("นอน"));
 	}
 }
