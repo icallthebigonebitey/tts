@@ -27,8 +27,11 @@ import java.util.ArrayList;
  */
 public class GoogleTTS implements LineListener
 {
-	private static int RESOURCE_POLLING_INTERVAL = 100; // milliseconds for polling interval during WAV playback
-	private static int RESOURCE_MP3_PAUSE_INTERVAL = 1500; // milliseconds for pauses during MP3 playback
+	private static final int RESOURCE_POLLING_INTERVAL = 100; // milliseconds for polling interval during WAV playback
+	private static final int RESOURCE_MP3_PAUSE_INTERVAL = 1500; // milliseconds for pauses during MP3 playback
+	private static final String RESOURCE_LANGUAGE_DEFAULT = "default";
+	private static final String RESOURCE_LANGUAGE_THAI = "th-TH";
+	private static final String RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH = "en-AU";
 	
 	/*
 	 * Google Cloud TTS
@@ -52,7 +55,7 @@ public class GoogleTTS implements LineListener
 	private TextToSpeechClient textToSpeechClient;
 	private Hashtable<String, ByteString> audioContentsCache = new Hashtable<String, ByteString>();
 	private ArrayList<Phrase> audioPhrases = new ArrayList<Phrase>();
-	private GoogleTextToSpeechTransform transformer = new GoogleTextToSpeechTransform();
+	private Hashtable<String, TextToSpeechTransform> transformer = new Hashtable<String, TextToSpeechTransform>();
 	private AudioConfig audioConfig;
 	boolean playCompleted;
 	
@@ -61,7 +64,7 @@ public class GoogleTTS implements LineListener
     	String verbiage = "งาน";
     	// งาน  ม
     	// "ในวันฝนพรำเธอคิดถึงกันบ้างไหมในตอนที่ไม่ได้เจอแล้วเธอนั้นเป็นอย่างไร"
-    	String language = "th-TH";
+    	String language = RESOURCE_LANGUAGE_THAI;
     	
     	// define options
         Options options = new Options();
@@ -98,8 +101,8 @@ public class GoogleTTS implements LineListener
         	
         	//client.renderAsMP3(verbiage, language);
         	
-        	client.collectPhraseForPlayback("หลอด", "th-TH", "straw", "en-AU");
-        	client.collectPhraseForPlayback("ผนัง", "th-TH", "wall", "en-AU");
+        	client.collectPhraseForPlayback("หลอด", RESOURCE_LANGUAGE_THAI, "straw", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
+        	client.collectPhraseForPlayback("ผนัง", RESOURCE_LANGUAGE_THAI, "wall", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
         	client.generateMP3fromPhrases("tone_rule_words.mp3", false);
         	
         	//client.playAsWAV(verbiage, language);
@@ -115,14 +118,24 @@ public class GoogleTTS implements LineListener
         System.exit(0);
     }
     
-    
+   
     public GoogleTTS() throws IOException {
     	textToSpeechClient = TextToSpeechClient.create();
+    	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
+    	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
+    }
+    
+    private TextToSpeechTransform fetchTransform(String language) {
+    	if (language == null || language.length() == 0) {
+    		return transformer.get(RESOURCE_LANGUAGE_DEFAULT);
+    	}
+    	TextToSpeechTransform transform = transformer.get(language);
+    	return (transform == null) ? transformer.get(RESOURCE_LANGUAGE_DEFAULT) : transform;
     }
     
     private ByteString synthesize(String verbiage, String language) {
  
-    	verbiage = transformer.transform(verbiage);
+    	verbiage = fetchTransform(language).transform(verbiage);
     	
     	// Set the text input to be synthesized
     	SynthesisInput input = SynthesisInput.newBuilder().setSsml(verbiage).build();
@@ -148,7 +161,7 @@ public class GoogleTTS implements LineListener
     	
     	// Build the voice request, specify the language code and the ssml voice gender
     	// ("neutral")
-    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().setLanguageCode("en-AU").
+    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().setLanguageCode(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH).
 	           setSsmlGender(SsmlVoiceGender.NEUTRAL).build();
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
@@ -195,7 +208,6 @@ public class GoogleTTS implements LineListener
     			out.write(audioContents.toByteArray());
     			out.write(silenceContents.toByteArray());
             }
-            
     		
     		out.close();
     	    System.out.println("Audio content written to file " + fileName);
