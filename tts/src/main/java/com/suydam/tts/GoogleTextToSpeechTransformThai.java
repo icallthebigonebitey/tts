@@ -48,7 +48,10 @@ public class GoogleTextToSpeechTransformThai extends GoogleTextToSpeechTransform
 		registerRule(new TransformRule("สระ", false, "สะระ"));
 		
 		// fix pronunciation of several standalone vowels
-		
+		registerRule(new TransformRule("ฤ", true, "รึ"));
+		registerRule(new TransformRule("ฤา", true, "รื"));
+		registerRule(new TransformRule("ฦ", true, "ลึ"));
+		registerRule(new TransformRule("ฦา", true, "ลื"));
 	}
 	
 	public static void main(String[] args) {
