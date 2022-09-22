@@ -9,7 +9,8 @@ public class GoogleTextToSpeechTransform implements TextToSpeechTransform {
 	// character for pause insertion
 	private static final String RESOURCE_CHAR_PAUSE = "/";
 	// xml code for GoogleTTS to inject a delay (where / must be replaced by a numeric value)
-	private static final String RESOURCE_PAUSE_CODE = ",<break time=\"" + RESOURCE_CHAR_PAUSE + "ms\"/>";
+	//private static final String RESOURCE_PAUSE_CODE = ",<break time=\"" + RESOURCE_CHAR_PAUSE + "ms\"/>";
+	private static final String RESOURCE_PAUSE_CODE = ",";
 	
 	// transform rules
 	private ArrayList<TransformRule> rules = new ArrayList<>();
@@ -31,7 +32,8 @@ public class GoogleTextToSpeechTransform implements TextToSpeechTransform {
 		}
 		
 		// insert pauses anywhere we see a forward slash in the english meaning
-		registerRule(new TransformRule(RESOURCE_CHAR_PAUSE, false, assignPauseDelay(delayMS)));
+		//registerRule(new TransformRule(RESOURCE_CHAR_PAUSE, false, assignPauseDelay(delayMS)));
+		registerRule(new TransformRule(RESOURCE_CHAR_PAUSE, false, RESOURCE_PAUSE_CODE));
 		
 		// rule for trimming enclosing brackets < >
 		// rule for TTS speed
