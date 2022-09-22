@@ -103,7 +103,7 @@ public class GoogleTTS implements LineListener
         	
         	client.collectPhraseForPlayback("หลอด", RESOURCE_LANGUAGE_THAI, "straw", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
         	client.collectPhraseForPlayback("ผนัง", RESOURCE_LANGUAGE_THAI, "wall", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
-        	client.generateMP3fromPhrases("tone_rule_words.mp3", false);
+        	client.generateMP3fromPhrases("tone_rule_words.mp3", 1500, false);
         	
         	//client.playAsWAV(verbiage, language);
         	//client.playAsWAV("ในวันฝนพรำเธอคิดถึงกันบ้างไหมในตอนที่ไม่ได้เจอแล้วเธอนั้นเป็นอย่างไร", language);
@@ -177,10 +177,14 @@ public class GoogleTTS implements LineListener
     	audioPhrases.add(new Phrase(verbiage1, language1, verbiage2, language2));
     }
     
-    public boolean generateMP3fromPhrases(String fileName, boolean reverse) {
+    public boolean generateMP3fromPhrases(String fileName, int pauseInterval, boolean reverse) {
+    	if (pauseInterval == 0) {
+    		pauseInterval = RESOURCE_MP3_PAUSE_INTERVAL;
+    	}
+    	
     	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
     	
-    	ByteString silenceContents = synthesizeSilence(RESOURCE_MP3_PAUSE_INTERVAL);
+    	ByteString silenceContents = synthesizeSilence(pauseInterval);
     	ByteString audioContents;
     	
     	// Write the response to the output file.
