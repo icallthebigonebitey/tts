@@ -32,6 +32,7 @@ public class GoogleTTS implements LineListener
 	private static final String RESOURCE_LANGUAGE_DEFAULT = "default";
 	private static final String RESOURCE_LANGUAGE_THAI = "th-TH";
 	private static final String RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH = "en-AU";
+	private static final double PLAYBACK_DEFAULT = 1.0;  // measured in seconds
 	
 	/*
 	 * Google Cloud TTS
@@ -56,7 +57,10 @@ public class GoogleTTS implements LineListener
 	private Hashtable<String, ByteString> audioContentsCache = new Hashtable<String, ByteString>();
 	private ArrayList<Phrase> audioPhrases = new ArrayList<Phrase>();
 	private Hashtable<String, TextToSpeechTransform> transformer = new Hashtable<String, TextToSpeechTransform>();
-	private AudioConfig audioConfig;
+	private AudioConfig englishAudioConfig;
+	private AudioConfig nonEnglishAudioConfig;
+	private double englishPlaybackSpeed = PLAYBACK_DEFAULT;
+	private double nonEnglishPlaybackSpeed = PLAYBACK_DEFAULT;
 	boolean playCompleted;
 	
     public static void main( String[] args )
@@ -99,8 +103,6 @@ public class GoogleTTS implements LineListener
         try {
         	GoogleTTS client = new GoogleTTS();
         	
-        	//client.renderAsMP3(verbiage, language);
-        	
         	client.collectPhraseForPlayback("หลอด", RESOURCE_LANGUAGE_THAI, "straw", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
         	client.collectPhraseForPlayback("ผนัง", RESOURCE_LANGUAGE_THAI, "wall", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
         	client.generateMP3fromPhrases("tone_rule_words.mp3", 1500, false);
@@ -118,11 +120,15 @@ public class GoogleTTS implements LineListener
         System.exit(0);
     }
     
-   
     public GoogleTTS() throws IOException {
+    	this(PLAYBACK_DEFAULT);
+    }
+    
+    public GoogleTTS(double nonEnglishPlaybackSpeed) throws IOException {
     	textToSpeechClient = TextToSpeechClient.create();
     	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
     	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
+    	this.nonEnglishPlaybackSpeed = nonEnglishPlaybackSpeed;
     }
     
     private TextToSpeechTransform fetchTransform(String language) {
@@ -133,6 +139,7 @@ public class GoogleTTS implements LineListener
     	return (transform == null) ? transformer.get(RESOURCE_LANGUAGE_DEFAULT) : transform;
     }
     
+    // assumes AudioConfig objects have already been created
     private ByteString synthesize(String verbiage, String language) {
  
     	verbiage = fetchTransform(language).transform(verbiage);
@@ -147,7 +154,8 @@ public class GoogleTTS implements LineListener
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
-    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice, audioConfig);
+    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice,
+    			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
     	
     	// Get the audio contents from the response
     	return response.getAudioContent();
@@ -166,7 +174,8 @@ public class GoogleTTS implements LineListener
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
-    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice, audioConfig);
+    	AudioConfig audioCfg = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
+    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice, audioCfg);
     	
     	// Get the audio contents from the response
     	return response.getAudioContent();
@@ -182,7 +191,8 @@ public class GoogleTTS implements LineListener
     		pauseInterval = RESOURCE_MP3_PAUSE_INTERVAL;
     	}
     	
-    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
+    	englishAudioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).setSpeakingRate(englishPlaybackSpeed).build();
+    	nonEnglishAudioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).setSpeakingRate(nonEnglishPlaybackSpeed).build();
     	
     	ByteString silenceContents = synthesizeSilence(pauseInterval);
     	ByteString audioContents;
@@ -192,6 +202,12 @@ public class GoogleTTS implements LineListener
     		// Fetch all collected phrases
             for (Phrase phrase:audioPhrases) {
             	
+            	/*
+            	 * we don't bother using audioContentsCache right now because it's just an
+            	 * in-memory cache and study track creation basically only uses the words once.
+            	 * if the cache evolves to a disk-based implementation then it becomes useful
+            	 * for the purposes of reducing Google cloud API consumption
+            	 */
             	audioContents = synthesize(reverse ? phrase.verbiage2() : phrase.verbiage1(),
             			reverse ? phrase.language2() : phrase.language1());
     			
@@ -202,6 +218,12 @@ public class GoogleTTS implements LineListener
     			out.write(audioContents.toByteArray());
     			out.write(silenceContents.toByteArray());
     			
+    			/*
+            	 * we don't bother using audioContentsCache right now because it's just an
+            	 * in-memory cache and study track creation basically only uses the words once.
+            	 * if the cache evolves to a disk-based implementation then it becomes useful
+            	 * for the purposes of reducing Google cloud API consumption
+            	 */
     			audioContents = synthesize(reverse ? phrase.verbiage1() : phrase.verbiage2(),
     					reverse ? phrase.language1() : phrase.language2());
     			
@@ -224,49 +246,17 @@ public class GoogleTTS implements LineListener
 		return true;
     }
     
-    public String renderAsMP3(String verbiage, String language) {
-    	
-    	String key = createKey(verbiage, language);
-    	ByteString audioContents = (ByteString) audioContentsCache.get(key);
-    	
-    	if (audioContents == null) {
-	    	// Select the type of audio file you want returned
-	    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
-	    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.MP3).build();
-	    	
-			audioContents = synthesize(verbiage, language);
-			if (audioContents == null) {
-				System.out.println("Could not synthesize text to speech");
-				return null;
-			}
-			
-			audioContentsCache.put(key, audioContents);
-    	}
-			
-    	// Write the response to the output file.
-    	String fileName = "output.mp3";
-    	try (OutputStream out = new FileOutputStream(fileName)) {
-    		out.write(audioContents.toByteArray());
-    		out.close();
-    	    System.out.println("Audio content written to file " + fileName);
-    	} catch (Exception e) {
-    		System.out.println("Could not write audio content to file");
-    		e.printStackTrace();
-    		return null;
-    	}
-    	
-    	return fileName;
-    }
-    
     public boolean playAsWAV(String verbiage, String language) {
     	
-    	String key = createKey(verbiage, language);
+    	String key = createVerbiageKey(verbiage, language);
     	ByteString audioContents = (ByteString) audioContentsCache.get(key);
     	
     	if (audioContents == null) {
 	    	// Select the type of audio file you want returned
 	    	// https://cloud.google.com/text-to-speech/docs/reference/rpc/google.cloud.texttospeech.v1#google.cloud.texttospeech.v1.AudioEncoding
-	    	audioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.LINEAR16).build();
+	    	
+        	englishAudioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.LINEAR16).setSpeakingRate(englishPlaybackSpeed).build();
+        	nonEnglishAudioConfig = AudioConfig.newBuilder().setAudioEncoding(AudioEncoding.LINEAR16).setSpeakingRate(nonEnglishPlaybackSpeed).build();
 	    	
 	    	audioContents = synthesize(verbiage, language);
 	    	if (audioContents == null) {
@@ -313,7 +303,7 @@ public class GoogleTTS implements LineListener
     	return true;
     }
     
-    private String createKey(String verbiage, String language) {
+    private String createVerbiageKey(String verbiage, String language) {
     	return verbiage + language;
     }
     
