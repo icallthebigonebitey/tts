@@ -16,7 +16,6 @@ public class GoogleTextToSpeechTransformThai extends GoogleTextToSpeechTransform
 	 * - ธ ("haw thong") should be something like "Thaaw thong"
 	 * - ฌ ("taw thoo") - should be something like "Chaaw cher"
 	 * - ฤ ("raw Rúe") should be something like "Rúe"
-	 * - แ ("beh") should be something like "Sa-ra ehhh" (long ae)
 	 * - ฦ ("law Lúe") should be something like "Lúe"
 	 * 
 	 */
