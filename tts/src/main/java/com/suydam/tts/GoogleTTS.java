@@ -105,9 +105,9 @@ public class GoogleTTS implements LineListener
         	
         	client.collectPhraseForPlayback("หลอด", RESOURCE_LANGUAGE_THAI, "straw", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
         	client.collectPhraseForPlayback("ผนัง", RESOURCE_LANGUAGE_THAI, "wall", RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH);
-        	client.generateMP3fromPhrases("tone_rule_words.mp3", 1500, false);
+        	//client.generateMP3fromPhrases("tone_rule_words.mp3", 1500, false);
         	
-        	//client.playAsWAV(verbiage, language);
+        	client.playAsWAV(verbiage, language);
         	//client.playAsWAV("ในวันฝนพรำเธอคิดถึงกันบ้างไหมในตอนที่ไม่ได้เจอแล้วเธอนั้นเป็นอย่างไร", language);
         	
         	// test that caching is working
@@ -154,8 +154,15 @@ public class GoogleTTS implements LineListener
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
-    	SynthesizeSpeechResponse response = textToSpeechClient.synthesizeSpeech(input, voice,
+    	SynthesizeSpeechResponse response = null;
+    	try {
+    		response = textToSpeechClient.synthesizeSpeech(input, voice,
     			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
+    	} catch (Exception e) {
+    		// no internet connection?
+    		System.out.println(e.getMessage());
+    		return null;
+    	}
     	
     	// Get the audio contents from the response
     	return response.getAudioContent();
@@ -268,7 +275,7 @@ public class GoogleTTS implements LineListener
     	} else {
     		//System.out.println("pulled from cache");
     	}
-    	 
+    	
     	InputStream inputStream = audioContents.newInput();
     	try {
     		AudioInputStream audioStream = AudioSystem.getAudioInputStream(inputStream);
