@@ -31,6 +31,7 @@ public class GoogleTTS implements LineListener
 	private static final int RESOURCE_MP3_PAUSE_INTERVAL = 1500; // milliseconds for pauses during MP3 playback
 	private static final String RESOURCE_LANGUAGE_DEFAULT = "default";
 	private static final String RESOURCE_LANGUAGE_THAI = "th-TH";
+	private static final String RESOURCE_LANGUAGE_ES_US = "es-US"; // override es-US for Swahili!
 	private static final String RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH = "en-AU";
 	private static final double PLAYBACK_DEFAULT = 1.0;  // measured in seconds
 	
@@ -128,6 +129,7 @@ public class GoogleTTS implements LineListener
     	textToSpeechClient = TextToSpeechClient.create();
     	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
     	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
+    	transformer.put(RESOURCE_LANGUAGE_ES_US, new GoogleTextToSpeechTransformSwahili());
     	this.nonEnglishPlaybackSpeed = nonEnglishPlaybackSpeed;
     }
     
