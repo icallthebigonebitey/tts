@@ -173,8 +173,8 @@ public class GoogleTTS implements LineListener
 	    			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
 	    	} catch (InvalidArgumentException iae) {
 	    		System.out.println(iae.getMessage());
-	    		System.out.println("Retrying speech synthesis...");
 	    		attempt++;
+	    		System.out.println("Retrying speech synthesis...("+attempt+")");
 	    		continue;
 	    	} catch (Exception e) {
 	    		// no internet connection?
