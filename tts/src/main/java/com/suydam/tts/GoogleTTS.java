@@ -3,6 +3,7 @@ package com.suydam.tts;
 import org.apache.commons.cli.*;
 import javax.sound.sampled.*;
 
+import com.google.api.gax.rpc.InvalidArgumentException;
 //Imports the Google Cloud client library
 import com.google.cloud.texttospeech.v1.AudioConfig;
 import com.google.cloud.texttospeech.v1.AudioEncoding;
@@ -31,7 +32,7 @@ public class GoogleTTS implements LineListener
 	private static final int RESOURCE_MP3_PAUSE_INTERVAL = 1500; // milliseconds for pauses during MP3 playback
 	private static final String RESOURCE_LANGUAGE_DEFAULT = "default";
 	private static final String RESOURCE_LANGUAGE_THAI = "th-TH";
-	private static final String RESOURCE_LANGUAGE_ES_US = "es-US"; // override es-US for Swahili!
+	private static final String RESOURCE_LANGUAGE_FAKE_SWAHILI = "ca-ES"; // close enough to Swahili!
 	private static final String RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH = "en-AU";
 	private static final double PLAYBACK_DEFAULT = 1.0;  // measured in seconds
 	
@@ -129,7 +130,7 @@ public class GoogleTTS implements LineListener
     	textToSpeechClient = TextToSpeechClient.create();
     	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
     	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
-    	transformer.put(RESOURCE_LANGUAGE_ES_US, new GoogleTextToSpeechTransformSwahili());
+    	transformer.put(RESOURCE_LANGUAGE_FAKE_SWAHILI, new GoogleTextToSpeechTransformSwahili());
     	this.nonEnglishPlaybackSpeed = nonEnglishPlaybackSpeed;
     }
     
@@ -157,13 +158,30 @@ public class GoogleTTS implements LineListener
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
     	SynthesizeSpeechResponse response = null;
-    	try {
-    		response = textToSpeechClient.synthesizeSpeech(input, voice,
-    			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
-    	} catch (Exception e) {
-    		// no internet connection?
-    		System.out.println(e.getMessage());
-    		return null;
+    	
+    	/*
+    	 * Unfortunately, Google TTS recently has been returning InvalidArgumentExceptions
+    	 * for no reason, citing an INVALID_ARGUMENT
+    	 * 	io.grpc.StatusRuntimeException: INVALID_ARGUMENT: Request contains an invalid argument.
+    	 * 
+    	 * It usually recovers after the first retry but I've seen up to 3 retries
+    	 */
+    	int attempt = 0;
+    	while (attempt < 10) {
+	    	try {
+	    		response = textToSpeechClient.synthesizeSpeech(input, voice,
+	    			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
+	    	} catch (InvalidArgumentException iae) {
+	    		System.out.println(iae.getMessage());
+	    		System.out.println("Retrying speech synthesis...");
+	    		attempt++;
+	    		continue;
+	    	} catch (Exception e) {
+	    		// no internet connection?
+	    		System.out.println(e.getMessage());
+	    		return null;
+	    	}
+	    	break;
     	}
     	
     	// Get the audio contents from the response
@@ -225,6 +243,8 @@ public class GoogleTTS implements LineListener
     				return false;
     			}
     			out.write(audioContents.toByteArray());
+    			
+    			// now add the pause between phrases
     			out.write(silenceContents.toByteArray());
     			
     			/*
@@ -269,7 +289,7 @@ public class GoogleTTS implements LineListener
 	    	
 	    	audioContents = synthesize(verbiage, language);
 	    	if (audioContents == null) {
-				System.out.println("Could not synthesize text to speech");
+				System.out.println("Could not synthesize text to speech: <" + verbiage + ">");
 				return false;
 			}
 			
