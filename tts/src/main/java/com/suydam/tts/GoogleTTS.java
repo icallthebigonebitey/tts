@@ -172,7 +172,7 @@ public class GoogleTTS implements LineListener
 	    		response = textToSpeechClient.synthesizeSpeech(input, voice,
 	    			language.startsWith("en") ? englishAudioConfig : nonEnglishAudioConfig);
 	    	} catch (InvalidArgumentException iae) {
-	    		System.out.println(iae.getMessage());
+	    		//System.out.println(iae.getMessage());
 	    		attempt++;
 	    		System.out.println("Retrying speech synthesis...("+attempt+")");
 	    		continue;
