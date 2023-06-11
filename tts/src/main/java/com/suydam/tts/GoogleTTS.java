@@ -34,6 +34,8 @@ public class GoogleTTS implements LineListener
 	private static final String RESOURCE_LANGUAGE_THAI = "th-TH";
 	private static final String RESOURCE_LANGUAGE_FAKE_SWAHILI = "ca-ES"; // close enough to Swahili!
 	private static final String RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH = "en-AU";
+	private static final String RESOURCE_LANGUAGE_BRITISH_ENGLISH = "en-GB";
+	private static final String RESOURCE_LANGUAGE_AMERICAN_ENGLISH = "en-US";
 	private static final double PLAYBACK_DEFAULT = 1.0;  // measured in seconds
 	
 	/*
@@ -131,7 +133,9 @@ public class GoogleTTS implements LineListener
     	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
     	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
     	transformer.put(RESOURCE_LANGUAGE_FAKE_SWAHILI, new GoogleTextToSpeechTransformSwahili());
-    	transformer.put(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH, new GoogleTextToSpeechTransformAustralian());
+    	transformer.put(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH, new GoogleTextToSpeechTransformEnglish());
+    	transformer.put(RESOURCE_LANGUAGE_BRITISH_ENGLISH, new GoogleTextToSpeechTransformEnglish());
+    	transformer.put(RESOURCE_LANGUAGE_AMERICAN_ENGLISH, new GoogleTextToSpeechTransformEnglish());
     	this.nonEnglishPlaybackSpeed = nonEnglishPlaybackSpeed;
     }
     

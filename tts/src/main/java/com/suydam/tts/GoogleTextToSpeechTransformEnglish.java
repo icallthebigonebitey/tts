@@ -1,11 +1,11 @@
 package com.suydam.tts;
 
-public class GoogleTextToSpeechTransformAustralian extends GoogleTextToSpeechTransform {
+public class GoogleTextToSpeechTransformEnglish extends GoogleTextToSpeechTransform {
 
 	/**
 	 * 
 	 */
-	public GoogleTextToSpeechTransformAustralian() {
+	public GoogleTextToSpeechTransformEnglish() {
 		this(0);
 	}
 	
@@ -13,14 +13,14 @@ public class GoogleTextToSpeechTransformAustralian extends GoogleTextToSpeechTra
 	 * 
 	 * @param delayMS number of milliseconds to inject for pauses
 	 */
-	public GoogleTextToSpeechTransformAustralian(int delayMS) {
+	public GoogleTextToSpeechTransformEnglish(int delayMS) {
 		super(delayMS);
 		
 		registerRule(new TransformRule("tuk tuk", true, "took took"));
 	}
 	
 	public static void main(String[] args) {
-		TextToSpeechTransform g = new GoogleTextToSpeechTransformAustralian();
+		TextToSpeechTransform g = new GoogleTextToSpeechTransformEnglish();
 		System.out.println(g.transform("tuk tuk"));
 	}
 }
