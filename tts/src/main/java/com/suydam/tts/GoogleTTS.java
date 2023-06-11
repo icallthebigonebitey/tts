@@ -131,6 +131,7 @@ public class GoogleTTS implements LineListener
     	transformer.put(RESOURCE_LANGUAGE_DEFAULT, new GoogleTextToSpeechTransform());
     	transformer.put(RESOURCE_LANGUAGE_THAI, new GoogleTextToSpeechTransformThai());
     	transformer.put(RESOURCE_LANGUAGE_FAKE_SWAHILI, new GoogleTextToSpeechTransformSwahili());
+    	transformer.put(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH, new GoogleTextToSpeechTransformAustralian());
     	this.nonEnglishPlaybackSpeed = nonEnglishPlaybackSpeed;
     }
     
