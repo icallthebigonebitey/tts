@@ -17,6 +17,7 @@ public class GoogleTextToSpeechTransformEnglish extends GoogleTextToSpeechTransf
 		super(delayMS);
 		
 		registerRule(new TransformRule("tuk tuk", false, "took took"));
+		registerRule(new TransformRule("zebra", false, "zeebra"));
 	}
 	
 	public static void main(String[] args) {
