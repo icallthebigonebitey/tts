@@ -16,11 +16,11 @@ public class GoogleTextToSpeechTransformEnglish extends GoogleTextToSpeechTransf
 	public GoogleTextToSpeechTransformEnglish(int delayMS) {
 		super(delayMS);
 		
-		registerRule(new TransformRule("tuk tuk", true, "took took"));
+		registerRule(new TransformRule("tuk tuk", false, "took took"));
 	}
 	
 	public static void main(String[] args) {
 		TextToSpeechTransform g = new GoogleTextToSpeechTransformEnglish();
-		System.out.println(g.transform("tuk tuk"));
+		System.out.println(g.transform("take a tuk tuk"));
 	}
 }
