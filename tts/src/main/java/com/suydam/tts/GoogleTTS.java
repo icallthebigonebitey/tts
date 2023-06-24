@@ -155,10 +155,16 @@ public class GoogleTTS implements LineListener
     	// Set the text input to be synthesized
     	SynthesisInput input = SynthesisInput.newBuilder().setSsml(verbiage).build();
     	
+    	/*
     	// Build the voice request, specify the language code and the ssml voice gender
     	// ("neutral")
     	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().setLanguageCode(language).
 	           setSsmlGender(SsmlVoiceGender.NEUTRAL).build();
+    	*/
+    	// Build the voice request, specify the language code but not a gender
+    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().
+    			setLanguageCode(language).build();
+    	
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
@@ -166,10 +172,8 @@ public class GoogleTTS implements LineListener
     	
     	/*
     	 * Unfortunately, Google TTS recently has been returning InvalidArgumentExceptions
-    	 * for no reason, citing an INVALID_ARGUMENT
-    	 * 	io.grpc.StatusRuntimeException: INVALID_ARGUMENT: Request contains an invalid argument.
-    	 * 
-    	 * It usually recovers after the first retry but I've seen up to 3 retries
+    	 * for no reason, citing an INVALID_ARGUMENT.  In one episode of these failures, an
+    	 * embedded exception indicated: INVALID_ARGUMENT: Gender neutral voices are not supported.
     	 */
     	int attempt = 0;
     	while (attempt < 10) {
@@ -199,10 +203,9 @@ public class GoogleTTS implements LineListener
     	// Set the text input to be synthesized
     	SynthesisInput input = SynthesisInput.newBuilder().setSsml(ssml).build();
     	
-    	// Build the voice request, specify the language code and the ssml voice gender
-    	// ("neutral")
-    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().setLanguageCode(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH).
-	           setSsmlGender(SsmlVoiceGender.NEUTRAL).build();
+    	// Build the voice request, specify the language code
+    	VoiceSelectionParams voice = VoiceSelectionParams.newBuilder().
+    			setLanguageCode(RESOURCE_LANGUAGE_AUSTRALIAN_ENGLISH).build();
     	
     	// Perform the text-to-speech request on the text input with the selected voice parameters and
 	    // audio file type
