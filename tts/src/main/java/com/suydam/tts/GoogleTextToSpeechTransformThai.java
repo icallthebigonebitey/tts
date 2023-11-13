@@ -45,7 +45,7 @@ public class GoogleTextToSpeechTransformThai extends GoogleTextToSpeechTransform
 		
 		// fix pronunciation of several words
 		registerRule(new TransformRule("สระ", false, "สะระ"));
-		registerRule(new TransformRule("ก็", false, "ก้อ"));
+		//registerRule(new TransformRule("ก็", true, "ก้อ"));
 		registerRule(new TransformRule("พยาบาล", false, "พะยาบาล"));
 		
 		// fix pronunciation of several standalone vowels
